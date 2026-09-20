@@ -15,7 +15,10 @@ class GraphAnalytics:
         """Build NetworkX graph from graph data"""
         G = nx.Graph()
         for node in graph_data.get("nodes", []):
-            G.add_node(node["id"], **node.get("properties", {}), label=node.get("label"), type=node.get("type"))
+            node_data = dict(node.get("properties", {}))
+        node_data["label"] = node.get("label")
+        node_data["type"] = node.get("type")
+        G.add_node(node["id"], **node_data)
         for edge in graph_data.get("edges", []):
             G.add_edge(edge["source"], edge["target"], type=edge.get("type"), **edge.get("properties", {}))
         return G
