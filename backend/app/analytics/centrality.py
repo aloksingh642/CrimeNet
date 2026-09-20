@@ -30,13 +30,25 @@ class AnalyticsService:
         G = self.build_nx_graph(graph_data)
 
         if G.number_of_nodes() == 0:
-            return {}
+            return {
+                "degree": [],
+                "betweenness": [],
+                "pagerank": [],
+                "closeness": [],
+                "density": 0,
+                "components": 0,
+            }
 
         degree = nx.degree_centrality(G)
         betweenness = nx.betweenness_centrality(G)
         closeness = nx.closeness_centrality(G)
 
-        def format_centrality(scores):
+        try:
+            pagerank = nx.pagerank(G)
+        except Exception:
+            pagerank = {node: 0.0 for node in G.nodes()}
+
+        def format_scores(scores):
             result = []
 
             for node_id, score in sorted(
@@ -50,16 +62,20 @@ class AnalyticsService:
                     "id": node_id,
                     "label": node_data.get("label", node_id),
                     "type": node_data.get("type", "unknown"),
-                    "score": round(score, 6),
+                    "score": float(score),
+                    "evidence": "Observed graph relationships",
                     "interpretation": f"Centrality score: {score:.4f}",
                 })
 
             return result
 
         return {
-            "degree": format_centrality(degree),
-            "betweenness": format_centrality(betweenness),
-            "closeness": format_centrality(closeness),
+            "degree": format_scores(degree),
+            "betweenness": format_scores(betweenness),
+            "pagerank": format_scores(pagerank),
+            "closeness": format_scores(closeness),
+            "density": nx.density(G),
+            "components": nx.number_connected_components(G),
         }
 
     def detect_communities(self, graph_data: Dict[str, Any]) -> Dict[str, int]:
