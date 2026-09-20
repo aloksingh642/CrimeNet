@@ -68,7 +68,9 @@ class GraphClient:
         if self.memory_graph is not None:
             import networkx as nx
             node_id = properties.get('id', f"{label}_{len(self.memory_graph.nodes)}")
-            self.memory_graph.add_node(node_id, label=label, **properties)
+            node_data = dict(properties)
+            node_data["label"] = label
+            self.memory_graph.add_node(node_id, **node_data)
             return True
         return False
     
