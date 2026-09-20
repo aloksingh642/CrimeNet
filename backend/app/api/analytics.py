@@ -22,11 +22,49 @@ def get_centrality(db: Session = Depends(get_db), current_user: User = Depends(g
 @router.get("/communities")
 def get_communities(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
     graph_data = graph_service.get_graph_data(limit=500)
-    communities = analytics_service.detect_communities(graph_data)
-    
-    log_audit(db, current_user.id, current_user.username, "COMMUNITIES_VIEWED", "ANALYTICS", None, f"Viewed {len(communities)} communities")
-    
-    return {"communities": communities, "total": len(communities)}
+    community_map = analytics_service.detect_communities(graph_data)
+
+    groups = {}
+
+    for node_id, community_id in community_map.items():
+        groups.setdefault(community_id, []).append(node_id)
+
+    nodes_by_id = {
+        node["id"]: node
+        for node in graph_data.get("nodes", [])
+    }
+
+    community_list = []
+
+    for community_id, members in groups.items():
+        type_distribution = {}
+
+        for node_id in members:
+            node_type = nodes_by_id.get(node_id, {}).get("type", "unknown")
+            type_distribution[node_type] = type_distribution.get(node_type, 0) + 1
+
+        community_list.append({
+            "id": community_id,
+            "size": len(members),
+            "description": f"Detected community containing {len(members)} connected entities.",
+            "type_distribution": type_distribution,
+            "central_nodes": members[:5],
+        })
+
+    log_audit(
+        db,
+        current_user.id,
+        current_user.username,
+        "COMMUNITIES_VIEWED",
+        "ANALYTICS",
+        None,
+        f"Viewed {len(community_list)} communities"
+    )
+
+    return {
+        "communities": community_list,
+        "total": len(community_list)
+    }
 
 @router.get("/anomalies")
 def get_anomalies(db: Session = Depends(get_db), current_user: User = Depends(get_current_active_user)):
