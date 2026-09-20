@@ -36,10 +36,30 @@ class AnalyticsService:
         betweenness = nx.betweenness_centrality(G)
         closeness = nx.closeness_centrality(G)
 
+        def format_centrality(scores):
+            result = []
+
+            for node_id, score in sorted(
+                scores.items(),
+                key=lambda item: item[1],
+                reverse=True
+            )[:20]:
+                node_data = G.nodes.get(node_id, {})
+
+                result.append({
+                    "id": node_id,
+                    "label": node_data.get("label", node_id),
+                    "type": node_data.get("type", "unknown"),
+                    "score": round(score, 6),
+                    "interpretation": f"Centrality score: {score:.4f}",
+                })
+
+            return result
+
         return {
-            "degree": degree,
-            "betweenness": betweenness,
-            "closeness": closeness,
+            "degree": format_centrality(degree),
+            "betweenness": format_centrality(betweenness),
+            "closeness": format_centrality(closeness),
         }
 
     def detect_communities(self, graph_data: Dict[str, Any]) -> Dict[str, int]:
